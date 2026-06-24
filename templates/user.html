@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>User Management – BotHost</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#0d1117; --surface:#161b22; --surface2:#21262d;
+    --border:#30363d; --border-h:#484f58;
+    --accent:#2ea043; --accent-h:#3fb950;
+    --blue:#1f6feb; --blue-h:#388bfd;
+    --red:#da3633; --red-h:#f85149;
+    --yellow:#d29922;
+    --text:#e6edf3; --muted:#8b949e; --muted2:#6e7681;
+    --radius:10px; --radius-sm:6px;
+    --font:'Inter',sans-serif; --mono:'JetBrains Mono',monospace;
+  }
+  body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:100vh;line-height:1.5}
+  a{color:var(--blue-h);text-decoration:none}
+
+  .app{max-width:1200px;margin:0 auto;padding:1.5rem}
+
+  .header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem}
+  .header h1{font-size:1.5rem;font-weight:800;display:flex;align-items:center;gap:10px}
+  .header-actions{display:flex;gap:.5rem;flex-wrap:wrap}
+  .btn{padding:.55rem 1.1rem;border-radius:var(--radius-sm);font-size:.85rem;font-weight:600;border:1px solid transparent;display:inline-flex;align-items:center;gap:6px;transition:all .15s;cursor:pointer}
+  .btn-primary{background:var(--accent);color:#fff}
+  .btn-primary:hover{background:var(--accent-h)}
+  .btn-secondary{background:var(--surface2);color:var(--text);border-color:var(--border)}
+  .btn-secondary:hover{background:var(--border)}
+  .btn-danger{background:transparent;color:var(--red-h);border-color:var(--red)}
+  .btn-danger:hover{background:rgba(248,81,73,.1)}
+  .btn-blue{background:rgba(31,111,235,.15);color:var(--blue-h);border-color:rgba(31,111,235,.3)}
+  .btn-blue:hover{background:rgba(31,111,235,.25)}
+
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:.75rem;margin-bottom:1.5rem}
+  .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:.75rem 1rem}
+  .stat-label{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+  .stat-value{font-size:1.4rem;font-weight:700}
+
+  .table-container{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:auto}
+  table{width:100%;border-collapse:collapse;font-size:.88rem}
+  th{text-align:left;padding:.75rem 1rem;background:var(--surface2);color:var(--muted);font-weight:600;font-size:.75rem;text-transform:uppercase;letter-spacing:.04em}
+  td{padding:.75rem 1rem;border-bottom:1px solid var(--border)}
+  tr:hover{background:var(--surface2)}
+  .badge{display:inline-flex;padding:.15rem .6rem;border-radius:9999px;font-size:.7rem;font-weight:600}
+  .badge.admin{background:rgba(46,160,67,.15);color:var(--accent-h)}
+  .badge.user{background:var(--surface2);color:var(--muted)}
+  .badge.active{background:rgba(46,160,67,.15);color:var(--accent-h)}
+  .badge.expired{background:rgba(248,81,73,.15);color:var(--red-h)}
+  .badge.warning{background:rgba(210,153,34,.15);color:var(--yellow)}
+
+  .actions{display:flex;gap:.3rem;flex-wrap:wrap}
+  .actions button{padding:.25rem .5rem;font-size:.7rem;border-radius:4px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;transition:all .1s}
+  .actions button:hover{background:var(--surface3);color:var(--text)}
+
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);z-index:100;display:none;align-items:center;justify-content:center;padding:1rem}
+  .modal-overlay.open{display:flex}
+  .modal{background:var(--surface);border:1px solid var(--border);border-radius:14px;width:100%;max-width:480px;box-shadow:0 24px 60px rgba(0,0,0,.5)}
+  .modal-header{padding:1rem 1.25rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+  .modal-header h3{font-size:1rem;font-weight:700}
+  .modal-close{background:var(--surface2);border:1px solid var(--border);color:var(--muted);width:28px;height:28px;border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+  .modal-close:hover{color:var(--text)}
+  .modal-body{padding:1.25rem}
+  .modal-footer{padding:.9rem 1.25rem;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:.5rem}
+  .form-group{margin-bottom:.9rem}
+  .form-label{display:block;font-size:.78rem;font-weight:600;color:var(--muted);margin-bottom:.3rem}
+  .form-input{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:.6rem .8rem;color:var(--text);font-size:.88rem;outline:none;transition:border-color .15s}
+  .form-input:focus{border-color:var(--accent)}
+  .form-check{display:flex;align-items:center;gap:.5rem;margin:.5rem 0}
+  .form-check input[type="checkbox"]{width:18px;height:18px;accent-color:var(--accent)}
+  .form-hint{font-size:.74rem;color:var(--muted2);margin-top:.3rem}
+
+  .toast{position:fixed;bottom:1.5rem;right:1.5rem;z-index:200;padding:.7rem 1rem;border-radius:8px;background:var(--surface2);border:1px solid var(--border);font-weight:500;display:flex;align-items:center;gap:.5rem;animation:slideIn .2s ease;box-shadow:0 8px 24px rgba(0,0,0,.3)}
+  .toast.success{border-color:rgba(46,160,67,.4);color:var(--accent-h)}
+  .toast.error{border-color:rgba(248,81,73,.4);color:var(--red-h)}
+  @keyframes slideIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+
+  .empty-state{text-align:center;padding:2.5rem;color:var(--muted)}
+  .empty-state .icon{font-size:2.5rem;margin-bottom:.5rem}
+
+  @media(max-width:768px){
+    .app{padding:.75rem}
+    .header h1{font-size:1.2rem}
+    .stats{grid-template-columns:repeat(2,1fr)}
+    table{font-size:.78rem}
+    th,td{padding:.5rem .6rem}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <h1>👥 User Management</h1>
+    <div class="header-actions">
+      <a href="/"><button class="btn btn-secondary">← Dashboard</button></a>
+      <button class="btn btn-primary" onclick="openAddUser()">＋ Add User</button>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat-card">
+      <div class="stat-label">Total Users</div>
+      <div class="stat-value" id="stat-total">{{ users|length }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Admins</div>
+      <div class="stat-value" id="stat-admins">{{ users|selectattr('is_admin','eq',true)|list|length }}</div>
+    </div>
+  </div>
+
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>Username</th>
+          <th>Role</th>
+          <th>Created</th>
+          <th>Expires</th>
+          <th>Bots</th>
+          <th style="text-align:right">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for username, data in users.items() %}
+        <tr>
+          <td><strong>{{ username }}</strong></td>
+          <td>
+            <span class="badge {{ 'admin' if data.is_admin else 'user' }}">
+              {{ 'Admin' if data.is_admin else 'User' }}
+            </span>
+          </td>
+          <td style="font-size:.8rem;color:var(--muted2)">{{ data.created_at[:10] if data.created_at else '-' }}</td>
+          <td>
+            {% if data.expires_at %}
+              {% set expiry = data.expires_at|string %}
+              {% if expiry < now|string %}
+                <span class="badge expired">Expired</span>
+              {% elif expiry[:10] > now[:10] %}
+                <span class="badge active">{{ expiry[:10] }}</span>
+              {% else %}
+                <span class="badge warning">{{ expiry[:10] }}</span>
+              {% endif %}
+            {% else %}
+              <span class="badge active">Never</span>
+            {% endif %}
+          </td>
+          <td style="font-size:.8rem">{{ data.bots|length }}</td>
+          <td>
+            <div class="actions" style="justify-content:flex-end">
+              {% if username != 'admin' %}
+              <button onclick="resetPassword('{{ username }}')" title="Reset Password">🔑</button>
+              <button onclick="extendDuration('{{ username }}')" title="Extend Duration">⏱</button>
+              <button onclick="deleteUser('{{ username }}')" title="Delete" style="color:var(--red-h)">🗑</button>
+              {% else %}
+              <span style="font-size:.7rem;color:var(--muted2)">Protected</span>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+        {% if not users %}
+        <tr><td colspan="6"><div class="empty-state"><div class="icon">👤</div><p>No users found</p></div></td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Add User Modal -->
+<div class="modal-overlay" id="add-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Add New User</h3>
+      <button class="modal-close" onclick="closeModal('add-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Username</label>
+        <input class="form-input" id="new-username" placeholder="Enter username" type="text">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input class="form-input" id="new-password" placeholder="Enter password" type="password">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Duration (days)</label>
+        <input class="form-input" id="new-duration" placeholder="30" type="number" value="30" min="1">
+        <div class="form-hint">Number of days until account expires</div>
+      </div>
+      <div class="form-check">
+        <input type="checkbox" id="new-is-admin">
+        <label for="new-is-admin" style="font-size:.85rem">Admin privileges</label>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('add-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="addUser()">Add User</button>
+    </div>
+  </div>
+</div>
+
+<!-- Reset Password Modal -->
+<div class="modal-overlay" id="reset-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Reset Password</h3>
+      <button class="modal-close" onclick="closeModal('reset-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:.88rem;color:var(--muted);margin-bottom:1rem">Reset password for <strong id="reset-username"></strong></p>
+      <div class="form-group">
+        <label class="form-label">New Password</label>
+        <input class="form-input" id="reset-password" placeholder="Enter new password" type="password">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('reset-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="confirmReset()">Reset Password</button>
+    </div>
+  </div>
+</div>
+
+<!-- Extend Modal -->
+<div class="modal-overlay" id="extend-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Extend Duration</h3>
+      <button class="modal-close" onclick="closeModal('extend-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:.88rem;color:var(--muted);margin-bottom:1rem">Extend duration for <strong id="extend-username"></strong></p>
+      <div class="form-group">
+        <label class="form-label">Add Days</label>
+        <input class="form-input" id="extend-days" placeholder="30" type="number" value="30" min="1">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('extend-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="confirmExtend()">Extend</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast Container -->
+<div id="toast-container" style="position:fixed;bottom:1.5rem;right:1.5rem;z-index:200;display:flex;flex-direction:column;gap:.5rem"></div>
+
+<script>
+let resetTarget = null;
+let extendTarget = null;
+let deleteTarget = null;
+
+function toast(msg, type = 'info') {
+  const container = document.getElementById('toast-container');
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.textContent = msg;
+  container.appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+function openAddUser() {
+  document.getElementById('new-username').value = '';
+  document.getElementById('new-password').value = '';
+  document.getElementById('new-duration').value = '30';
+  document.getElementById('new-is-admin').checked = false;
+  openModal('add-modal');
+}
+
+async function addUser() {
+  const username = document.getElementById('new-username').value.trim();
+  const password = document.getElementById('new-password').value.trim();
+  const duration = parseInt(document.getElementById('new-duration').value) || 30;
+  const isAdmin = document.getElementById('new-is-admin').checked;
+
+  if (!username || !password) { toast('Username and password required', 'error'); return; }
+  if (username.length < 3) { toast('Username must be at least 3 characters', 'error'); return; }
+  if (password.length < 4) { toast('Password must be at least 4 characters', 'error'); return; }
+
+  try {
+    const res = await fetch('/api/admin/user/add', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ username, password, is_admin: isAdmin, duration_days: duration })
+    });
+    const data = await res.json();
+    if (data.success) {
+      toast(data.message, 'success');
+      closeModal('add-modal');
+      setTimeout(() => location.reload(), 800);
+    } else {
+      toast(data.error, 'error');
+    }
+  } catch(e) {
+    toast('Network error', 'error');
+  }
+}
+
+function resetPassword(username) {
+  resetTarget = username;
+  document.getElementById('reset-username').textContent = username;
+  document.getElementById('reset-password').value = '';
+  openModal('reset-modal');
+}
+
+async function confirmReset() {
+  const password = document.getElementById('reset-password').value.trim();
+  if (!password || password.length < 4) { toast('Password must be at least 4 characters', 'error'); return; }
+  try {
+    const res = await fetch(`/api/admin/user/${resetTarget}/reset`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ password })
+    });
+    const data = await res.json();
+    if (data.success) {
+      toast('Password reset successfully', 'success');
+      closeModal('reset-modal');
+    } else {
+      toast(data.error, 'error');
+    }
+  } catch(e) {
+    toast('Network error', 'error');
+  }
+}
+
+function extendDuration(username) {
+  extendTarget = username;
+  document.getElementById('extend-username').textContent = username;
+  document.getElementById('extend-days').value = '30';
+  openModal('extend-modal');
+}
+
+async function confirmExtend() {
+  const days = parseInt(document.getElementById('extend-days').value) || 30;
+  try {
+    const res = await fetch(`/api/admin/user/${extendTarget}/extend`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ days })
+    });
+    const data = await res.json();
+    if (data.success) {
+      toast(`Extended by ${days} days`, 'success');
+      closeModal('extend-modal');
+      setTimeout(() => location.reload(), 800);
+    } else {
+      toast(data.error, 'error');
+    }
+  } catch(e) {
+    toast('Network error', 'error');
+  }
+}
+
+function deleteUser(username) {
+  if (!confirm(`Delete user "${username}"? This will also delete all their bots.`)) return;
+  fetch(`/api/admin/user/${username}/delete`, { method: 'POST' })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        toast('User deleted', 'success');
+        setTimeout(() => location.reload(), 800);
+      } else {
+        toast(data.error, 'error');
+      }
+    })
+    .catch(() => toast('Network error', 'error'));
+}
+
+// Close modals on overlay click
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', e => {
+    if (e.target === overlay) overlay.classList.remove('open');
+  });
+});
+</script>
+</body>
+</html>
